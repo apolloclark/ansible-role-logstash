@@ -1,0 +1,6 @@
+---
+- name: restart logstash
+  systemd:
+    name: "{{ logstash_combined.daemon }}"
+    state: restarted
+    sleep: 5

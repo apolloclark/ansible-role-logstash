@@ -1,0 +1,99 @@
+---
+# http://docs.ansible.com/ansible/latest/set_fact_module.html
+- name: Merge logstash_default and logstash variables
+  set_fact:
+    logstash_combined: "{{ logstash_defaults | combine(logstash, recursive=True) }}"
+
+# https://www.elastic.co/guide/en/logstash/reference/current/deb.html
+# http://docs.ansible.com/ansible/latest/apt_key_module.html
+- name: Add repository key
+  apt_key:
+    url: "https://artifacts.elastic.co/GPG-KEY-elasticsearch"
+    id: "46095ACC8548582C1A2699A9D27D666CD88E42B4"
+    state: present
+
+# https://www.elastic.co/guide/en/logstash/reference/current/deb.html
+# http://docs.ansible.com/ansible/latest/apt_repository_module.html
+- name: Add Elastic 5.x repo (if choosing the 5.x version)
+  apt_repository:
+    repo: 'deb https://artifacts.elastic.co/packages/5.x/apt stable main'
+    state: present
+  when: "logstash_combined.version == '5.x'"
+  
+  # https://www.elastic.co/guide/en/logstash/reference/2.4/setup-repositories.html
+  # https://packages.elastic.co/logstash/2.x/debian
+
+- name: Update apt cache
+  apt: update_cache=yes
+  when: (logstash_combined.version == '5.x')
+
+- name: Install from repo (if choosing the 5.x version)
+  apt:
+    name: logstash
+    state: installed
+  when: (logstash_combined.version == '5.x')
+
+- name: Get the platform (i386 or amd64) of the virtual machine
+  command: dpkg --print-architecture
+  register: print_architecture
+
+- name: And set the actual platform value as a variable
+  set_fact:
+    platform: "{{ print_architecture.stdout }}"
+
+- name: Download deb (if choosing a specific version)
+  get_url:
+    url={{ elastic_url }}/downloads/logstash/logstash-{{ logstash_combined.version }}.deb
+    dest=/opt/logstash.deb
+  when: (logstash_combined.version != '5.x')
+
+- name: Install from deb (if choosing a specific version)
+  apt: deb=/opt/logstash.deb
+  when: (logstash_combined.version != '5.x')
+
+# http://docs.ansible.com/ansible/latest/service_module.html
+- name: Make sure Logstash autostarts
+  systemd:
+    name: logstash
+    enabled: yes
+
+# http://docs.ansible.com/ansible/latest/template_module.html
+- name: Copy config file
+  template:
+    src: "{{ logstash_combined.input_conf }}"
+    dest: "{{ logstash_combined.config_include_dir }}/10-input.conf"
+    owner: root
+    group: root
+    mode: 0644
+  when: "logstash_combined.install_only != 'true'"
+
+# http://docs.ansible.com/ansible/latest/template_module.html
+- name: Copy config file
+  template:
+    src: "{{ logstash_combined.filter_conf }}"
+    dest: "{{ logstash_combined.config_include_dir }}/20-filter.conf"
+    owner: root
+    group: root
+    mode: 0644
+  when: "logstash_combined.install_only != 'true'"
+
+# http://docs.ansible.com/ansible/latest/template_module.html
+- name: Copy config file
+  template:
+    src: "{{ logstash_combined.output_conf }}"
+    dest: "{{ logstash_combined.config_include_dir }}/30-output.conf"
+    owner: root
+    group: root
+    mode: 0644
+  when: "logstash_combined.install_only != 'true'"
+
+- name: Restart Logstash
+  service:
+    name: "{{ logstash_combined.daemon }}"
+    state: restarted
+    sleep: 15
+
+- name: Wait for Logstash to become available
+  wait_for:
+    port: 9200
+    delay: 5
