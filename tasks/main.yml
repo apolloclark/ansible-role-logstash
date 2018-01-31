@@ -58,7 +58,7 @@
     enabled: yes
 
 # http://docs.ansible.com/ansible/latest/template_module.html
-- name: Copy config file
+- name: Copy config file, input
   template:
     src: "{{ logstash_combined.input_conf }}"
     dest: "{{ logstash_combined.config_include_dir }}/10-input.conf"
@@ -68,7 +68,7 @@
   when: "logstash_combined.install_only != 'true'"
 
 # http://docs.ansible.com/ansible/latest/template_module.html
-- name: Copy config file
+- name: Copy config file, filter
   template:
     src: "{{ logstash_combined.filter_conf }}"
     dest: "{{ logstash_combined.config_include_dir }}/20-filter.conf"
@@ -78,7 +78,7 @@
   when: "logstash_combined.install_only != 'true'"
 
 # http://docs.ansible.com/ansible/latest/template_module.html
-- name: Copy config file
+- name: Copy config file, output
   template:
     src: "{{ logstash_combined.output_conf }}"
     dest: "{{ logstash_combined.config_include_dir }}/30-output.conf"
