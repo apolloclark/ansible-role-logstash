@@ -11,5 +11,5 @@ logstash:
 logstash_defaults:
   daemon: "logstash"
   version: "5.x"
-  config_include_dir: "/etc/logstash/"
+  config_include_dir: "/etc/logstash/conf.d/"
   install_only: "false"
