@@ -6,10 +6,11 @@ elastic_url: "https://artifacts.elastic.co"
 
 # Overload variables using the dict named elasticsearch
 logstash:
-  version: "5.x"
+  version: "6.2.0"
 
 logstash_defaults:
   daemon: "logstash"
-  version: "5.x"
+  version: "6.2.0"
   config_include_dir: "/etc/logstash/conf.d/"
   install_only: "false"
+  install_repo: "true"

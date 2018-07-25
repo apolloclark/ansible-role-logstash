@@ -18,20 +18,39 @@
   apt_repository:
     repo: 'deb https://artifacts.elastic.co/packages/5.x/apt stable main'
     state: present
-  when: "logstash_combined.version == '5.x'"
-  
+  when:
+    - (logstash_combined.version is version('5.6', '>='))
+    - (logstash_combined.version is version('6', '<'))
+    - (logstash_combined.install_repo == 'true')
+
+# https://www.elastic.co/guide/en/elasticsearch/reference/current/deb.html
+# http://docs.ansible.com/ansible/latest/apt_repository_module.html
+- name: Add Elastic 6.x repo (if choosing the 6.x version)
+  apt_repository:
+    repo: 'deb https://artifacts.elastic.co/packages/6.x/apt stable main'
+    state: present
+  when:
+    - (logstash_combined.version is version('6', '>='))
+    - (logstash_combined.version is version('7', '<'))
+    - (logstash_combined.install_repo == 'true')
+    
   # https://www.elastic.co/guide/en/logstash/reference/2.4/setup-repositories.html
   # https://packages.elastic.co/logstash/2.x/debian
 
+# https://docs.ansible.com/ansible/latest/modules/apt_module.html
 - name: Update apt cache
   apt: update_cache=yes
-  when: (logstash_combined.version == '5.x')
+  when:
+    - (logstash_combined.install_repo == 'true')
 
-- name: Install from repo (if choosing the 5.x version)
+# https://docs.ansible.com/ansible/latest/modules/apt_module.html
+- name: Install from repo (if choosing the 5.6.x or 6.x version)
   apt:
-    name: logstash
+    name: "logstash=1:{{ logstash_combined.version }}-1"
     state: installed
-  when: (logstash_combined.version == '5.x')
+  when: 
+    - (logstash_combined.version is version('5.6', '>='))
+    - (logstash_combined.version is version('7', '<'))
 
 - name: Get the platform (i386 or amd64) of the virtual machine
   command: dpkg --print-architecture
@@ -41,15 +60,17 @@
   set_fact:
     platform: "{{ print_architecture.stdout }}"
 
-- name: Download deb (if choosing a specific version)
+- name: Download deb (if choosing an older version)
   get_url:
     url={{ elastic_url }}/downloads/logstash/logstash-{{ logstash_combined.version }}.deb
     dest=/opt/logstash.deb
-  when: (logstash_combined.version != '5.x')
+  when:
+    - (logstash_combined.version is version('5.6', '<'))
 
-- name: Install from deb (if choosing a specific version)
+- name: Install from deb (if choosing an older version)
   apt: deb=/opt/logstash.deb
-  when: (logstash_combined.version != '5.x')
+  when:
+    - (logstash_combined.version is version('5.6', '<'))
 
 # http://docs.ansible.com/ansible/latest/service_module.html
 - name: Make sure Logstash autostarts
@@ -86,6 +107,8 @@
     group: root
     mode: 0644
   when: "logstash_combined.install_only != 'true'"
+  
+# /usr/share/logstash/bin/logstash-plugin update logstash-input-beats
 
 - name: Restart Logstash
   service:
