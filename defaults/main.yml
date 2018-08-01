@@ -12,5 +12,6 @@ logstash_defaults:
   daemon: "logstash"
   version: "6.2.0"
   config_include_dir: "/etc/logstash/conf.d/"
-  install_only: "false"
-  install_repo: "true"
+  install_only: false
+  install_repo: true
+  update_plugins: true

@@ -19,44 +19,42 @@
     repo: 'deb https://artifacts.elastic.co/packages/5.x/apt stable main'
     state: present
   when:
-    - (logstash_combined.version is version('5.6', '>='))
-    - (logstash_combined.version is version('6', '<'))
-    - (logstash_combined.install_repo == 'true')
+    - logstash_combined.version is version('5.6', '>=')
+    - logstash_combined.version is version('6', '<')
+    - logstash_combined.install_repo
 
-# https://www.elastic.co/guide/en/elasticsearch/reference/current/deb.html
 # http://docs.ansible.com/ansible/latest/apt_repository_module.html
 - name: Add Elastic 6.x repo (if choosing the 6.x version)
   apt_repository:
     repo: 'deb https://artifacts.elastic.co/packages/6.x/apt stable main'
     state: present
   when:
-    - (logstash_combined.version is version('6', '>='))
-    - (logstash_combined.version is version('7', '<'))
-    - (logstash_combined.install_repo == 'true')
-    
-  # https://www.elastic.co/guide/en/logstash/reference/2.4/setup-repositories.html
-  # https://packages.elastic.co/logstash/2.x/debian
+    - logstash_combined.version is version('6', '>=')
+    - logstash_combined.version is version('7', '<')
+    - logstash_combined.install_repo
 
 # https://docs.ansible.com/ansible/latest/modules/apt_module.html
 - name: Update apt cache
   apt: update_cache=yes
   when:
-    - (logstash_combined.install_repo == 'true')
+    - logstash_combined.install_repo
 
 # https://docs.ansible.com/ansible/latest/modules/apt_module.html
 - name: Install from repo (if choosing the 5.6.x or 6.x version)
   apt:
     name: "logstash=1:{{ logstash_combined.version }}-1"
-    state: installed
-  when: 
-    - (logstash_combined.version is version('5.6', '>='))
-    - (logstash_combined.version is version('7', '<'))
+    state: present
+  when:
+    - logstash_combined.version is version('5.6', '>=')
+    - logstash_combined.version is version('7', '<')
+    - logstash_combined.install_repo
 
 - name: Get the platform (i386 or amd64) of the virtual machine
   command: dpkg --print-architecture
   register: print_architecture
 
-- name: And set the actual platform value as a variable
+# https://docs.ansible.com/ansible/latest/modules/set_fact_module.html
+- name: Set the platform value as a variable
   set_fact:
     platform: "{{ print_architecture.stdout }}"
 
@@ -65,16 +63,17 @@
     url={{ elastic_url }}/downloads/logstash/logstash-{{ logstash_combined.version }}.deb
     dest=/opt/logstash.deb
   when:
-    - (logstash_combined.version is version('5.6', '<'))
+    - logstash_combined.version is version('5.6', '<')
 
-- name: Install from deb (if choosing an older version)
+# https://docs.ansible.com/ansible/latest/modules/apt_module.html
+- name: Install from deb (if choosing a specific version)
   apt: deb=/opt/logstash.deb
   when:
-    - (logstash_combined.version is version('5.6', '<'))
+    - logstash_combined.version is version('5.6', '<')
 
 # http://docs.ansible.com/ansible/latest/service_module.html
-- name: Make sure Logstash autostarts
-  systemd:
+- name: Ensure logstash auto-starts
+  service:
     name: logstash
     enabled: yes
 
@@ -86,7 +85,8 @@
     owner: root
     group: root
     mode: 0644
-  when: "logstash_combined.install_only != 'true'"
+  when:
+    - not logstash_combined.install_only
 
 # http://docs.ansible.com/ansible/latest/template_module.html
 - name: Copy config file, filter
@@ -96,7 +96,8 @@
     owner: root
     group: root
     mode: 0644
-  when: "logstash_combined.install_only != 'true'"
+  when:
+    - not logstash_combined.install_only
 
 # http://docs.ansible.com/ansible/latest/template_module.html
 - name: Copy config file, output
@@ -106,15 +107,16 @@
     owner: root
     group: root
     mode: 0644
-  when: "logstash_combined.install_only != 'true'"
-  
+  when:
+    - not logstash_combined.install_only
+
+# - name: Update logstash input plugins
 # /usr/share/logstash/bin/logstash-plugin update logstash-input-beats
 
 - name: Restart Logstash
   service:
     name: "{{ logstash_combined.daemon }}"
     state: restarted
-    sleep: 15
 
 - name: Wait for Logstash to become available
   wait_for:
