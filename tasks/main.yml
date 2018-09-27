@@ -76,6 +76,8 @@
   service:
     name: logstash
     enabled: yes
+  when:
+    - not logstash_combined.install_only
 
 # http://docs.ansible.com/ansible/latest/template_module.html
 - name: Copy config file, input
