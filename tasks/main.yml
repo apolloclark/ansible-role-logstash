@@ -117,8 +117,12 @@
   service:
     name: "{{ logstash_combined.daemon }}"
     state: restarted
+  when:
+    - not logstash_combined.install_only
 
 - name: Wait for Logstash to become available
   wait_for:
     port: 5044
     delay: 5
+  when:
+    - not logstash_combined.install_only
