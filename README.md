@@ -13,7 +13,7 @@ Default values are in `defaults/main.yml`. You can overload the variables by
 creating a dictionary called "logstash", ex:
 
     logstash:
-      version: 6.3.2
+      version: 6.6.2
 
 ## Dependencies
 
