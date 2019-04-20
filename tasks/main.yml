@@ -112,6 +112,13 @@
   when:
     - not logstash_combined.install_only
 
+# https://www.elastic.co/guide/en/logstash/latest/working-with-plugins.html
+- name: Install plugins
+  command: /usr/share/logstash/bin/logstash-plugin install {{ item }}
+  loop: "{{ logstash_combined.install_plugins }}"
+  when:
+    - logstash_combined.install_plugins
+
 # - name: Update logstash input plugins
 # /usr/share/logstash/bin/logstash-plugin update logstash-input-beats
 

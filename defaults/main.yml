@@ -6,7 +6,7 @@ elastic_url: "https://artifacts.elastic.co"
 
 # Overload variables using the dict named elasticsearch
 logstash:
-  version: "6.6.2"
+  version: "6.7.0"
 
 logstash_defaults:
   daemon: "logstash"
@@ -14,3 +14,4 @@ logstash_defaults:
   install_only: false
   install_repo: true
   update_plugins: true
+  install_plugins: []
