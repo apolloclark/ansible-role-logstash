@@ -4,80 +4,22 @@
   set_fact:
     logstash_combined: "{{ logstash_defaults | combine(logstash, recursive=True) }}"
 
-# https://www.elastic.co/guide/en/logstash/reference/current/deb.html
-# http://docs.ansible.com/ansible/latest/apt_key_module.html
-- name: Add repository key
-  apt_key:
-    url: "https://artifacts.elastic.co/GPG-KEY-elasticsearch"
-    id: "46095ACC8548582C1A2699A9D27D666CD88E42B4"
-    state: present
-
-# https://www.elastic.co/guide/en/logstash/reference/current/deb.html
-# http://docs.ansible.com/ansible/latest/apt_repository_module.html
-- name: Add Elastic 5.x repo (if choosing the 5.x version)
-  apt_repository:
-    repo: 'deb https://artifacts.elastic.co/packages/5.x/apt stable main'
-    state: present
+# Include OS-specific installation tasks.
+- include_tasks: setup-RedHat.yml
   when:
-    - logstash_combined.version is version('5.6', '>=')
-    - logstash_combined.version is version('6', '<')
-    - logstash_combined.install_repo
+    - ansible_os_family == 'RedHat'
 
-# http://docs.ansible.com/ansible/latest/apt_repository_module.html
-- name: Add Elastic 6.x repo (if choosing the 6.x version)
-  apt_repository:
-    repo: 'deb https://artifacts.elastic.co/packages/6.x/apt stable main'
-    state: present
+- include_tasks: setup-Debian.yml
   when:
-    - logstash_combined.version is version('6', '>=')
-    - logstash_combined.version is version('7', '<')
-    - logstash_combined.install_repo
+    - ansible_os_family == 'Debian'
 
-# https://docs.ansible.com/ansible/latest/modules/apt_module.html
-- name: Update apt cache
-  apt: update_cache=yes
-  when:
-    - logstash_combined.install_repo
 
-# https://docs.ansible.com/ansible/latest/modules/apt_module.html
-- name: Install from repo (if choosing the 5.6.x or 6.x version)
-  apt:
-    name: "logstash=1:{{ logstash_combined.version }}-1"
-    state: present
-  when:
-    - logstash_combined.version is version('5.6', '>=')
-    - logstash_combined.version is version('7', '<')
-    - logstash_combined.install_repo
 
-- name: Get the platform (i386 or amd64) of the virtual machine
-  command: dpkg --print-architecture
-  register: print_architecture
-
-# https://docs.ansible.com/ansible/latest/modules/set_fact_module.html
-- name: Set the platform value as a variable
-  set_fact:
-    platform: "{{ print_architecture.stdout }}"
-
-- name: Download deb (if choosing an older version)
-  get_url:
-    url={{ elastic_url }}/downloads/logstash/logstash-{{ logstash_combined.version }}.deb
-    dest=/opt/logstash.deb
-  when:
-    - logstash_combined.version is version('5.6', '<')
-
-# https://docs.ansible.com/ansible/latest/modules/apt_module.html
-- name: Install from deb (if choosing a specific version)
-  apt: deb=/opt/logstash.deb
-  when:
-    - logstash_combined.version is version('5.6', '<')
-
-# http://docs.ansible.com/ansible/latest/service_module.html
+# http://docs.ansible.com/ansible/latest/systemd_module.html
 - name: Ensure logstash auto-starts
-  service:
+  systemd:
     name: logstash
     enabled: yes
-  when:
-    - not logstash_combined.install_only
 
 # http://docs.ansible.com/ansible/latest/template_module.html
 - name: Copy config file, input
@@ -123,7 +65,7 @@
 # /usr/share/logstash/bin/logstash-plugin update logstash-input-beats
 
 - name: Restart Logstash
-  service:
+  systemd:
     name: "{{ logstash_combined.daemon }}"
     state: restarted
   when:

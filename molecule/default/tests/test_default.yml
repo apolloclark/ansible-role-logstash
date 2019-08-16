@@ -1,0 +1,19 @@
+---
+package:
+  {{ logstash_combined.daemon }}:
+    installed: true
+    versions:
+      - {{ package_version }}
+
+service:
+  {{ logstash_combined.daemon }}:
+    enabled: true
+    running: false
+
+command:
+  /usr/share/logstash/bin/logstash --version:
+    exit-status: 0
+    stderr: []
+    stdout:
+      - "logstash {{ logstash_combined.version }}"
+    timeout: 10000
