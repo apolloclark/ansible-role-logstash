@@ -8,19 +8,19 @@ pipenv install -r test-requirements.txt --python 2.7
 export PACKAGE=logstash
 export PACKAGE_VERSION=7.3.0
 
-# RHEL 8.0
-export DOCKER_IMAGE_BASE=apolloclark/openjdk:11-rhel8.0
-export DOCKER_INST_NAME_SUFFIX=rhel_8.0
+# RHEL 8
+export DOCKER_IMAGE_BASE=apolloclark/openjdk:11-rhel8
+export DOCKER_INST_NAME_SUFFIX=rhel_8
 pipenv run molecule test --all
 
-# RHEL 7.6
-export DOCKER_IMAGE_BASE=apolloclark/openjdk:11-rhel7.6
-export DOCKER_INST_NAME_SUFFIX=rhel_7.6
+# RHEL 7
+export DOCKER_IMAGE_BASE=apolloclark/openjdk:11-rhel7
+export DOCKER_INST_NAME_SUFFIX=rhel_7
 pipenv run molecule test --all
 
-# CentOS 7.6
-export DOCKER_IMAGE_BASE=apolloclark/openjdk:11-centos7.6
-export DOCKER_INST_NAME_SUFFIX=centos_7.6.1810
+# CentOS 7
+export DOCKER_IMAGE_BASE=apolloclark/openjdk:11-centos7
+export DOCKER_INST_NAME_SUFFIX=centos_7
 pipenv run molecule test --all
 
 # Amazon Linux 2
